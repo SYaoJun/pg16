@@ -1,0 +1,88 @@
+
+
+CREATE FUNCTION person_in(cstring)
+   RETURNS person
+   AS '_OBJWD_/person'
+   LANGUAGE C IMMUTABLE STRICT;
+
+-- the output function 'person_out' takes the internal representation and
+-- converts it into the textual representation.
+
+CREATE FUNCTION person_out(person)
+   RETURNS cstring
+   AS '_OBJWD_/person'
+   LANGUAGE C IMMUTABLE STRICT;
+
+-- the binary input function 'person_recv' takes a StringInfo buffer
+-- and turns its contents into the internal representation.
+
+CREATE FUNCTION person_recv(internal)
+   RETURNS person
+   AS '_OBJWD_/person'
+   LANGUAGE C IMMUTABLE STRICT;
+
+-- the binary output function 'person_send' takes the internal representation
+-- and converts it into a (hopefully) platform-independent bytea string.
+
+CREATE FUNCTION person_send(person)
+   RETURNS bytea
+   AS '_OBJWD_/person'
+   LANGUAGE C IMMUTABLE STRICT;
+
+
+-- now, we can create the type. The internallength specifies the size of the
+-- memory block required to hold the type (we need two 8-byte doubles).
+
+CREATE TYPE person (
+   internallength = 16,
+   input = person_in,
+   output = person_out,
+   receive = person_recv,
+   send = person_send,
+   alignment = double
+);
+
+
+-----------------------------
+-- Using the new type:
+--	user-defined types can be used like ordinary built-in types.
+-----------------------------
+
+-- eg. we can use it in a table
+
+CREATE TABLE test_person (
+	a	person,
+	b	person
+);
+
+-- data for user-defined types are just strings in the proper textual
+-- representation.
+
+INSERT INTO test_person VALUES ('(1.0, 2.5)', '(4.2, 3.55 )');
+INSERT INTO test_person VALUES ('(33.0, 51.4)', '(100.42, 93.55)');
+
+SELECT * FROM test_person;
+
+-----------------------------
+-- Creating an operator for the new type:
+--	Let's define an add operator for person types. Since POSTGRES
+--	supports function overloading, we'll use + as the add operator.
+--	(Operator names can be reused with different numbers and types of
+--	arguments.)
+-----------------------------
+
+-- first, define a function person_add (also in person.c)
+CREATE FUNCTION person_add(person, person)
+   RETURNS person
+   AS '_OBJWD_/person'
+   LANGUAGE C IMMUTABLE STRICT;
+
+-- we can now define the operator. We show a binary operator here but you
+-- can also define a prefix operator by omitting the leftarg.
+CREATE OPERATOR + (
+   leftarg = person,
+   rightarg = person,
+   procedure = person_add,
+   commutator = +
+);
+

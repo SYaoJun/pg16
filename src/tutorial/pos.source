@@ -1,0 +1,88 @@
+
+
+CREATE FUNCTION pos_in(cstring)
+   RETURNS pos
+   AS '_OBJWD_/pos'
+   LANGUAGE C IMMUTABLE STRICT;
+
+-- the output function 'pos_out' takes the internal representation and
+-- converts it into the textual representation.
+
+CREATE FUNCTION pos_out(pos)
+   RETURNS cstring
+   AS '_OBJWD_/pos'
+   LANGUAGE C IMMUTABLE STRICT;
+
+-- the binary input function 'pos_recv' takes a StringInfo buffer
+-- and turns its contents into the internal representation.
+
+CREATE FUNCTION pos_recv(internal)
+   RETURNS pos
+   AS '_OBJWD_/pos'
+   LANGUAGE C IMMUTABLE STRICT;
+
+-- the binary output function 'pos_send' takes the internal representation
+-- and converts it into a (hopefully) platform-independent bytea string.
+
+CREATE FUNCTION pos_send(pos)
+   RETURNS bytea
+   AS '_OBJWD_/pos'
+   LANGUAGE C IMMUTABLE STRICT;
+
+
+-- now, we can create the type. The internallength specifies the size of the
+-- memory block required to hold the type (we need two 8-byte doubles).
+
+CREATE TYPE pos (
+   internallength = 16,
+   input = pos_in,
+   output = pos_out,
+   receive = pos_recv,
+   send = pos_send,
+   alignment = double
+);
+
+
+-----------------------------
+-- Using the new type:
+--	user-defined types can be used like ordinary built-in types.
+-----------------------------
+
+-- eg. we can use it in a table
+
+CREATE TABLE test_pos (
+	a	pos,
+	b	pos
+);
+
+-- data for user-defined types are just strings in the proper textual
+-- representation.
+
+INSERT INTO test_pos VALUES ('(1.0, 2.5)', '(4.2, 3.55 )');
+INSERT INTO test_pos VALUES ('(33.0, 51.4)', '(100.42, 93.55)');
+
+SELECT * FROM test_pos;
+
+-----------------------------
+-- Creating an operator for the new type:
+--	Let's define an add operator for pos types. Since POSTGRES
+--	supports function overloading, we'll use + as the add operator.
+--	(Operator names can be reused with different numbers and types of
+--	arguments.)
+-----------------------------
+
+-- first, define a function pos_add (also in pos.c)
+CREATE FUNCTION pos_add(pos, pos)
+   RETURNS pos
+   AS '_OBJWD_/pos'
+   LANGUAGE C IMMUTABLE STRICT;
+
+-- we can now define the operator. We show a binary operator here but you
+-- can also define a prefix operator by omitting the leftarg.
+CREATE OPERATOR + (
+   leftarg = pos,
+   rightarg = pos,
+   procedure = pos_add,
+   commutator = +
+);
+
