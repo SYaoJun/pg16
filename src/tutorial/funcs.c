@@ -124,3 +124,16 @@ c_overpaid(PG_FUNCTION_ARGS)
 
 	PG_RETURN_BOOL(salary > limit);
 }
+
+/*minus one*/
+/* By Value */
+
+PG_FUNCTION_INFO_V1(minus_one);
+
+Datum
+minus_one(PG_FUNCTION_ARGS)
+{
+	int32		arg = PG_GETARG_INT32(0);
+
+	PG_RETURN_INT32(arg - 1);
+}

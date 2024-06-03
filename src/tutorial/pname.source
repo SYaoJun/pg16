@@ -1,0 +1,43 @@
+
+
+CREATE FUNCTION person_name_in(cstring)
+   RETURNS person_name
+   AS '_OBJWD_/pname'
+   LANGUAGE C IMMUTABLE STRICT;
+
+
+
+CREATE FUNCTION person_name_out(person_name)
+   RETURNS cstring
+   AS '_OBJWD_/pname'
+   LANGUAGE C IMMUTABLE STRICT;
+
+
+
+
+
+
+CREATE TYPE person_name (
+   internallength = 128,
+   input = person_name_in,
+   output = person_name_out,
+   alignment = double
+);
+
+
+
+CREATE TABLE Students (
+   zid       integer primary key,
+   name      person_name not null,
+   degree    text
+);
+
+INSERT INTO Students (zid, name, degree) VALUES
+(9300035, 'Shepherd, John Andrew', 'BSc(Computer Science)'),
+(5012345, 'Smith, Stephen', 'BE(Hons)(Software Engineering)');
+
+SELECT * FROM Students;
+
+
+
+
